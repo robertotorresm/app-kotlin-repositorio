@@ -1,7 +1,5 @@
 package com.example.app_kotlin
 
-import android.R
-import android.R.attr.color
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -24,21 +22,18 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
-import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.example.app_kotlin.ui.theme.AppkotlinTheme
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.graphics.Color
 
 class CounterAppActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -47,7 +42,7 @@ class CounterAppActivity : ComponentActivity() {
         setContent {
             AppkotlinTheme {
                 CounterApp(
-                    onBack = {finish() }
+                    onBack = { finish() }
                 )
             }
         }
@@ -65,13 +60,13 @@ fun CounterApp(onBack: () -> Unit) {
         topBar = {
             TopAppBar(
                 title = {
-                    Text("Counter App",
+                    Text(
+                        "Counter App",
                         color = Color.White
-                        )
-
+                    )
                 },
                 navigationIcon = {
-                    IconButton(onClick = onBack) {
+                    IconButton( onClick = onBack ) {
                         Icon(
                             imageVector = Icons.AutoMirrored.Default.ArrowBack,
                             contentDescription = "Volver",
@@ -80,29 +75,29 @@ fun CounterApp(onBack: () -> Unit) {
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = Color( 0xFF1E88E5)
+                    containerColor = Color(0xFF1E88E5)
                 )
             )
         },
         floatingActionButton = {
-            FloatingActionButton(onClick = { count++}) {
-                Icon(Icons.Default.Add, contentDescription = "increment")
+            FloatingActionButton(onClick = { count++ }) {
+                Icon(Icons.Default.Add, contentDescription = "Increment")
             }
         }
     ) { innerPadding ->
         Column(
-            modifier = Modifier.padding(innerPadding)
+            modifier = Modifier
+                .padding(innerPadding)
                 .fillMaxSize()
                 .padding(24.dp),
             verticalArrangement = Arrangement.Center,
             horizontalAlignment = Alignment.CenterHorizontally
-
         ) {
             Text(
-                text = "Presionaste el boton"
+                text = "Presionaste el boton: "
             )
             Text(
-                text ="$count",
+                text = "$count",
                 style = MaterialTheme.typography.displayLarge
             )
 
@@ -111,16 +106,13 @@ fun CounterApp(onBack: () -> Unit) {
             Row(
                 horizontalArrangement = Arrangement.spacedBy(12.dp)
             ) {
-                OutlinedButton(onClick = {count--}) {
+                OutlinedButton(onClick = { count-- }) {
                     Text("-1")
                 }
-
-                OutlinedButton(onClick = {count = 0}) {
+                OutlinedButton(onClick = { count = 0}) {
                     Text(" 0 ")
                 }
             }
-
         }
     }
 }
-

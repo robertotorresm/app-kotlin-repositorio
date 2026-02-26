@@ -22,8 +22,7 @@ class QuizViewModel : ViewModel() {
     val uiState: StateFlow<QuizUiState> = _uiState.asStateFlow()
 
     fun onSelectedOption(index: Int) {
-        Log.d("selecteOption", "Click en un Option")
-        // Tomar el estado actual
+        // Obtener el estado actual
         val current = _uiState.value
 
         // Si el usuario termino la trivia
@@ -31,6 +30,34 @@ class QuizViewModel : ViewModel() {
 
         // actualizar el estado
         _uiState.value = current.copy(selectedIndex = index)
+    }
+
+    fun onConfirmAnswer() {
+        // Obtener el estado actual
+        val current = _uiState.value
+
+        // Validaciones
+        val selected = current.selectedIndex ?: return
+
+        val currentQuestion = current.currentQuestion ?: return
+
+        // Validar si "selected" es la correcta (seleccionada)
+        val isCorrect = selected == currentQuestion.correctIndex
+
+        // Calcular el nuevo score (Puntaje)
+        val newScore = if (isCorrect) current.score + 100 else current.score
+
+        // Validar si se acabaron las preguntas
+        val currentIndexQuestion = current.currentIndex + 1
+        val finished = currentIndexQuestion >= current.questions.size
+
+        // Actualizar el _uiState
+        _uiState.value = current.copy(
+            score = newScore,
+            currentIndex = currentIndexQuestion,
+            selectedIndex = null,
+            isFinished = finished
+        )
     }
 
 

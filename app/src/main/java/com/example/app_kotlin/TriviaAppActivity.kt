@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
@@ -71,12 +72,16 @@ class TriviaAppActivity : ComponentActivity() {
                     ) {
                         if(state.isFinished) {
                             // Vista FinishedScreen
-                            FinishedScreen()
+                            FinishedScreen(
+                                score = state.score,
+                                total = state.questions.size * 100
+                            )
                         } else {
                             // Vista/Pantalla QuestionScreen
                             QuestionScreen(
                                 state = state,
-                                onSelectedOption = viewModel::onSelectedOption
+                                onSelectedOption = viewModel::onSelectedOption,
+                                onConfirm = viewModel::onConfirmAnswer
                             )
                         }
                     }
@@ -89,7 +94,8 @@ class TriviaAppActivity : ComponentActivity() {
 @Composable
 fun QuestionScreen(
     state : QuizUiState,
-    onSelectedOption: (Int) -> Unit
+    onSelectedOption: (Int) -> Unit,
+    onConfirm: () -> Unit,
 ) {
 
     // Tomare la pregunta actual desde el estado (derivado)
@@ -139,7 +145,7 @@ fun QuestionScreen(
         }
 
         Button(
-            onClick = {},
+            onClick = onConfirm,
             modifier = Modifier.fillMaxWidth()
         ) {
             Text("Confirmar")
@@ -149,6 +155,33 @@ fun QuestionScreen(
 }
 
 @Composable
-fun FinishedScreen() {
+fun FinishedScreen(
+    score: Int,
+    total: Int
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(32.dp),
+        verticalArrangement = Arrangement.Center,
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        Text(
+            text = "¡Quiz finalizado!",
+            style = MaterialTheme.typography.headlineMedium
+        )
 
+        Spacer(modifier = Modifier.height(48.dp))
+
+        Text(
+            text = "Tu puntaje: $score / $total",
+            style = MaterialTheme.typography.titleLarge
+        )
+
+        Spacer(modifier = Modifier.height(64.dp))
+
+        Button(onClick = {} ) {
+            Text("Reintentar Quiz")
+        }
+    }
 }

@@ -183,6 +183,15 @@ fun QuestionScreen(
                 Text(buttonLabel)
             }
         }
+
+        // ── Porcentaje de avance ──────────────────────────────────────────
+        val progress = ((state.currentIndex + 1).toFloat() / state.questions.size * 100).toInt()
+        Text(
+            text = "Porcentaje de avance: $progress%",
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.align(Alignment.CenterHorizontally)
+        )
     }
 }
 

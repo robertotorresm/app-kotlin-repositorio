@@ -5,16 +5,7 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.*
@@ -25,6 +16,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.example.app_kotlin.trivia.Feedback
 import com.example.app_kotlin.trivia.QuizUiState
 import com.example.app_kotlin.trivia.QuizViewModel
 import com.example.app_kotlin.ui.theme.AppkotlinTheme
@@ -36,22 +28,15 @@ class TriviaAppActivity : ComponentActivity() {
         enableEdgeToEdge()
         setContent {
             AppkotlinTheme {
-
-                val viewModel : QuizViewModel = viewModel()
-
+                val viewModel: QuizViewModel = viewModel()
                 val state = viewModel.uiState.collectAsStateWithLifecycle().value
 
                 Scaffold(
                     topBar = {
                         TopAppBar(
-                            title = {
-                                Text(
-                                    "Trivia App",
-                                    color = Color.White
-                                )
-                            },
+                            title = { Text("Trivia App", color = Color.White) },
                             navigationIcon = {
-                                IconButton( onClick = { finish() }) {
+                                IconButton(onClick = { finish() }) {
                                     Icon(
                                         imageVector = Icons.AutoMirrored.Default.ArrowBack,
                                         contentDescription = "Volver",
@@ -70,18 +55,18 @@ class TriviaAppActivity : ComponentActivity() {
                             .padding(innerPadding)
                             .fillMaxSize()
                     ) {
-                        if(state.isFinished) {
-                            // Vista FinishedScreen
+                        if (state.isFinished) {
                             FinishedScreen(
                                 score = state.score,
-                                total = state.questions.size * 100
+                                total = state.questions.size * 100,
+                                livesLeft = state.lives
                             )
                         } else {
-                            // Vista/Pantalla QuestionScreen
                             QuestionScreen(
                                 state = state,
                                 onSelectedOption = viewModel::onSelectedOption,
-                                onConfirm = viewModel::onConfirmAnswer
+                                onConfirm = viewModel::onConfirmAnswer,
+                                onNext = viewModel::onNextQuestion
                             )
                         }
                     }
@@ -93,12 +78,11 @@ class TriviaAppActivity : ComponentActivity() {
 
 @Composable
 fun QuestionScreen(
-    state : QuizUiState,
+    state: QuizUiState,
     onSelectedOption: (Int) -> Unit,
     onConfirm: () -> Unit,
+    onNext: () -> Unit,
 ) {
-
-    // Tomare la pregunta actual desde el estado (derivado)
     val q = state.currentQuestion ?: return
 
     Column(
@@ -107,30 +91,44 @@ fun QuestionScreen(
             .padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
-        // Pregunta 1 de N
-        Text(
-            text = "Pregunta ${state.currentIndex + 1} de ${state.questions.size}",
-            style = MaterialTheme.typography.titleMedium
-        )
+
+        // ── Fila superior: progreso + vidas ──────────────────────────────
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                text = "Pregunta ${state.currentIndex + 1} de ${state.questions.size}",
+                style = MaterialTheme.typography.titleMedium
+            )
+            // Vidas: muestra ❤️ por cada vida restante
+            val heartsDisplay = "❤️".repeat(state.lives) + "🖤".repeat(3 - state.lives)
+            Text(
+                text = heartsDisplay,
+                style = MaterialTheme.typography.titleMedium
+            )
+        }
+
+        // ── Título de la pregunta ─────────────────────────────────────────
         Text(
             text = q.title,
             style = MaterialTheme.typography.headlineSmall
         )
 
-        q.options.forEachIndexed{ index, option ->
+        // ── Opciones ──────────────────────────────────────────────────────
+        q.options.forEachIndexed { index, option ->
             val isSelected = state.selectedIndex == index
 
             ElevatedCard(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .clickable { onSelectedOption(index) } ,
+                    .clickable { onSelectedOption(index) },
                 elevation = CardDefaults.elevatedCardElevation(
                     defaultElevation = if (isSelected) 14.dp else 1.dp
                 )
             ) {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
                     RadioButton(
                         selected = isSelected,
                         onClick = { onSelectedOption(index) }
@@ -144,20 +142,55 @@ fun QuestionScreen(
             }
         }
 
-        Button(
-            onClick = onConfirm,
-            modifier = Modifier.fillMaxWidth()
-        ) {
-            Text("Confirmar")
+        // ── Feedback ──────────────────────────────────────────────────────
+        if (state.feedback != null) {
+            val (emoji, msg, color) = when (state.feedback) {
+                Feedback.CORRECT -> Triple("✅", "¡Correcto!", Color(0xFF388E3C))
+                Feedback.INCORRECT -> Triple("❌", "Incorrecto", Color(0xFFC62828))
+            }
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                colors = CardDefaults.cardColors(containerColor = color.copy(alpha = 0.12f))
+            ) {
+                Text(
+                    text = "$emoji $msg",
+                    modifier = Modifier.padding(12.dp),
+                    style = MaterialTheme.typography.titleMedium,
+                    color = color
+                )
+            }
         }
 
+        Spacer(modifier = Modifier.weight(1f))
+
+        // ── Botón principal ───────────────────────────────────────────────
+        if (state.feedback == null) {
+            // Aún no confirmó → mostrar Confirmar
+            Button(
+                onClick = onConfirm,
+                enabled = state.selectedIndex != null,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text("Confirmar")
+            }
+        } else {
+            // Ya confirmó → avanzar
+            val buttonLabel = if (state.isLastQuestion || state.lives <= 0) "Ver resultados" else "Siguiente"
+            Button(
+                onClick = onNext,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text(buttonLabel)
+            }
+        }
     }
 }
 
 @Composable
 fun FinishedScreen(
     score: Int,
-    total: Int
+    total: Int,
+    livesLeft: Int
 ) {
     Column(
         modifier = Modifier
@@ -166,12 +199,15 @@ fun FinishedScreen(
         verticalArrangement = Arrangement.Center,
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        Text(
-            text = "¡Quiz finalizado!",
-            style = MaterialTheme.typography.headlineMedium
-        )
+        val title = if (livesLeft <= 0) "¡Sin vidas! 💀" else "¡Quiz finalizado! 🎉"
+        Text(text = title, style = MaterialTheme.typography.headlineMedium)
 
-        Spacer(modifier = Modifier.height(48.dp))
+        Spacer(modifier = Modifier.height(24.dp))
+
+        val heartsDisplay = "❤️".repeat(livesLeft) + "🖤".repeat(3 - livesLeft)
+        Text(text = heartsDisplay, style = MaterialTheme.typography.headlineSmall)
+
+        Spacer(modifier = Modifier.height(24.dp))
 
         Text(
             text = "Tu puntaje: $score / $total",
@@ -180,7 +216,7 @@ fun FinishedScreen(
 
         Spacer(modifier = Modifier.height(64.dp))
 
-        Button(onClick = {} ) {
+        Button(onClick = {}) {
             Text("Reintentar Quiz")
         }
     }

@@ -16,7 +16,6 @@ class QuizViewModel : ViewModel() {
     fun onSelectedOption(index: Int) {
         val current = _uiState.value
         if (current.isFinished) return
-        // No permitir cambiar opción si ya se confirmó (hay feedback)
         if (current.feedback != null) return
         _uiState.value = current.copy(selectedIndex = index)
     }
@@ -30,7 +29,6 @@ class QuizViewModel : ViewModel() {
         val newScore = if (isCorrect) current.score + 100 else current.score
         val newLives = if (isCorrect) current.lives else current.lives - 1
 
-        // Mostrar feedback — la navegación ocurre en onNextQuestion()
         _uiState.value = current.copy(
             score = newScore,
             lives = newLives,
@@ -41,9 +39,9 @@ class QuizViewModel : ViewModel() {
     fun onNextQuestion() {
         val current = _uiState.value
 
-        // Fin por vidas agotadas
-        if (current.lives <= 0) {
-            _uiState.value = current.copy(isFinished = true, feedback = null)
+        // Término por vidas agotadas
+        if (current.lives <= 0 || current.currentIndex >= current.questions.size - 1) {
+            _uiState.value = current.copy(isFinished = true)
             return
         }
 
@@ -51,13 +49,15 @@ class QuizViewModel : ViewModel() {
         val finished = nextIndex >= current.questions.size
 
         _uiState.value = current.copy(
-            currentIndex = nextIndex,
+            currentIndex = current.currentIndex + 1,
             selectedIndex = null,
-            feedback = null,
-            isFinished = finished
+            feedback = null
         )
     }
 
+    fun restartQuiz() {
+        _uiState.value = QuizUiState(questions = seedQuestions())
+    }
     private fun seedQuestions(): List<Question> {
         return listOf(
             Question(
@@ -80,74 +80,74 @@ class QuizViewModel : ViewModel() {
             ),
             Question(
                 id = 4,
-                title = "La instrucción que permite restaurar estado tras recreación de Activity es:",
-                options = listOf("intentData", "savedInstanceState", "activityState", "bundleConfig"),
-                correctIndex = 1
-            ),
-            Question(
-                id = 5,
-                title = "¿Qué clase se usa como base para guardar estado que sobrevive cambios de configuración?",
-                options = listOf("Activity", "Fragment", "ViewModel", "Repository"),
-                correctIndex = 2
-            ),
-            Question(
-                id = 6,
-                title = "¿Qué función de Compose se usa para recordar un valor a través de recomposiciones?",
+                title = "¿Qué función se usa para recordar un valor a través de recomposiciones?",
                 options = listOf("rememberState()", "remember { }", "stateOf()", "mutableOf()"),
                 correctIndex = 1
             ),
             Question(
-                id = 7,
-                title = "En Kotlin, ¿cómo se declara una función de extensión sobre String?",
-                options = listOf("fun String.miFun()", "extend String miFun()", "fun miFun(String)", "String::miFun()"),
-                correctIndex = 0
-            ),
-            Question(
-                id = 8,
+                id = 5,
                 title = "¿Qué operador en Kotlin lanza NullPointerException si el valor es null?",
                 options = listOf("?.", "?:", "!!", "::"),
                 correctIndex = 2
             ),
             Question(
+                id = 6,
+                title = "En Java, ¿cuál es la palabra clave para heredar de una clase?",
+                options = listOf("implements", "inherits", "extends", "import"),
+                correctIndex = 2
+            ),
+            Question(
+                id = 7,
+                title = "¿Qué pilar de la POO permite que una clase oculte sus detalles internos?",
+                options = listOf("Herencia", "Polimorfismo", "Abstracción", "Encapsulamiento"),
+                correctIndex = 3
+            ),
+            Question(
+                id = 8,
+                title = "¿Qué método es el punto de entrada principal en una aplicación Java estándar?",
+                options = listOf("main()", "start()", "init()", "run()"),
+                correctIndex = 0
+            ),
+            Question(
                 id = 9,
-                title = "¿Qué composable se usa para apilar elementos uno encima del otro?",
-                options = listOf("Column", "Row", "Box", "Scaffold"),
+                title = "En Java, ¿cómo se llama el constructor de una clase?",
+                options = listOf("constructor()", "new()", "Igual que la clase", "init()"),
                 correctIndex = 2
             ),
             Question(
                 id = 10,
-                title = "¿Qué clase de Kotlin representa un resultado que puede ser éxito o fallo?",
-                options = listOf("Option", "Either", "Result", "Maybe"),
-                correctIndex = 2
-            ),
-            Question(
-                id = 11,
-                title = "¿Qué modificador de Compose hace que un elemento ocupe todo el ancho disponible?",
-                options = listOf("Modifier.expand()", "Modifier.fillMaxWidth()", "Modifier.matchParent()", "Modifier.wrapContent()"),
+                title = "¿Qué comando SQL se usa para insertar nuevos registros en una tabla?",
+                options = listOf("ADD RECORD", "INSERT INTO", "UPDATE", "CREATE"),
                 correctIndex = 1
             ),
             Question(
+                id = 11,
+                title = "¿Cuál es la cláusula SQL utilizada para filtrar los resultados de una consulta?",
+                options = listOf("WHERE", "FILTER", "GROUP BY", "ORDER BY"),
+                correctIndex = 0
+            ),
+            Question(
                 id = 12,
-                title = "En Kotlin, ¿qué palabra clave se usa para heredar de una clase?",
-                options = listOf("implements", "extends", ":", "inherits"),
-                correctIndex = 2
+                title = "¿Qué tipo de JOIN devuelve solo las filas que tienen coincidencia en ambas tablas?",
+                options = listOf("LEFT JOIN", "RIGHT JOIN", "FULL JOIN", "INNER JOIN"),
+                correctIndex = 3
             ),
             Question(
                 id = 13,
-                title = "¿Qué función de colecciones Kotlin transforma cada elemento de una lista?",
-                options = listOf("filter", "map", "reduce", "forEach"),
+                title = "Para eliminar todos los datos de una tabla sin borrar la estructura, usamos:",
+                options = listOf("REMOVE", "DELETE FROM", "DROP", "CLEAR"),
                 correctIndex = 1
             ),
             Question(
                 id = 14,
-                title = "¿Qué tipo de clase en Kotlin NO puede ser heredada por defecto?",
-                options = listOf("abstract class", "open class", "class (sin modificador)", "sealed class"),
+                title = "¿En qué archivo se declaran los permisos y componentes de la App?",
+                options = listOf("build.gradle", "settings.gradle", "AndroidManifest.xml", "MainActivity.java"),
                 correctIndex = 2
             ),
             Question(
                 id = 15,
-                title = "¿Cuál es el composable correcto para mostrar texto en Jetpack Compose?",
-                options = listOf("Label()", "TextView()", "Text()", "TextWidget()"),
+                title = "¿Qué componente de Android sobrevive a los cambios de configuración (como rotar pantalla)?",
+                options = listOf("Activity", "Fragment", "ViewModel", "Intent"),
                 correctIndex = 2
             )
         )

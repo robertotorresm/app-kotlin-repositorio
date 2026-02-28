@@ -13,8 +13,8 @@ data class QuizUiState(
     val selectedIndex: Int? = null,
     val score: Int = 0,
     val isFinished: Boolean = false,
-    val lives: Int = 3,                      // ❤️ Vidas restantes
-    val feedback: Feedback? = null,          // Feedback tras confirmar
+    val lives: Int = 3,
+    val feedback: Feedback? = null,
 ) {
     val currentQuestion: Question?
         get() = questions.getOrNull(currentIndex)

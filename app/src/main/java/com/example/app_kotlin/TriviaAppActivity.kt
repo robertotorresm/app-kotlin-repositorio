@@ -6,13 +6,16 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -45,7 +48,7 @@ class TriviaAppActivity : ComponentActivity() {
                                 }
                             },
                             colors = TopAppBarDefaults.topAppBarColors(
-                                containerColor = Color(0xFF1E88E5)
+                                containerColor = Color(0xFF3F51B5)
                             )
                         )
                     },
@@ -59,7 +62,8 @@ class TriviaAppActivity : ComponentActivity() {
                             FinishedScreen(
                                 score = state.score,
                                 total = state.questions.size * 100,
-                                livesLeft = state.lives
+                                livesLeft = state.lives,
+                                onRestart = viewModel::restartQuiz
                             )
                         } else {
                             QuestionScreen(
@@ -92,31 +96,67 @@ fun QuestionScreen(
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
 
-        // ── Fila superior: progreso + vidas ──────────────────────────────
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
+        // Barra de progreso y vidas
+        val progressFactor = (state.currentIndex + 1).toFloat() / state.questions.size
+        val progressPercentage = (progressFactor * 100).toInt()
+
+        Card(
+            shape = RoundedCornerShape(12.dp),
+            colors = CardDefaults.cardColors(containerColor = Color(0xFFF5F5F5)),
+            modifier = Modifier.fillMaxWidth()
         ) {
-            Text(
-                text = "Pregunta ${state.currentIndex + 1} de ${state.questions.size}",
-                style = MaterialTheme.typography.titleMedium
-            )
-            // Vidas: muestra ❤️ por cada vida restante
-            val heartsDisplay = "❤️".repeat(state.lives) + "🖤".repeat(3 - state.lives)
-            Text(
-                text = heartsDisplay,
-                style = MaterialTheme.typography.titleMedium
-            )
+            Column(modifier = Modifier.padding(12.dp)) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = "Porcentaje de avance: $progressPercentage%",
+                        style = MaterialTheme.typography.labelLarge,
+                        color = Color(0xFF1E88E5)
+                    )
+
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Text(
+                            text = "Vidas: ",
+                            style = MaterialTheme.typography.labelLarge,
+                            color = Color.Gray
+                        )
+                        val heartsDisplay = "❤️".repeat(state.lives) + "🖤".repeat(3 - state.lives)
+                        Text(text = heartsDisplay)
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(8.dp))
+
+                LinearProgressIndicator(
+                    progress = { progressFactor },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(8.dp)
+                        .clip(RoundedCornerShape(4.dp)),
+                    color = Color(0xFF1E88E5),
+                    trackColor = Color.LightGray,
+                )
+            }
         }
 
-        // ── Título de la pregunta ─────────────────────────────────────────
+        Spacer(modifier = Modifier.height(4.dp))
+
+        // Índice
+        Text(
+            text = "Pregunta ${state.currentIndex + 1} de ${state.questions.size}",
+            style = MaterialTheme.typography.titleSmall,
+            color = Color.DarkGray
+        )
+        // Título de la pregunta
         Text(
             text = q.title,
             style = MaterialTheme.typography.headlineSmall
         )
 
-        // ── Opciones ──────────────────────────────────────────────────────
+        // Opciones
         q.options.forEachIndexed { index, option ->
             val isSelected = state.selectedIndex == index
 
@@ -142,11 +182,11 @@ fun QuestionScreen(
             }
         }
 
-        // ── Feedback ──────────────────────────────────────────────────────
+        //  1. Feedback inmediato
         if (state.feedback != null) {
             val (emoji, msg, color) = when (state.feedback) {
-                Feedback.CORRECT -> Triple("✅", "¡Correcto!", Color(0xFF388E3C))
-                Feedback.INCORRECT -> Triple("❌", "Incorrecto", Color(0xFFC62828))
+                Feedback.CORRECT -> Triple("✅", "¡Correcto!", Color(0xFF79C77A))
+                Feedback.INCORRECT -> Triple("❌", "Incorrecto", Color(0xFFD94F4F))
             }
             Card(
                 modifier = Modifier.fillMaxWidth(),
@@ -163,9 +203,9 @@ fun QuestionScreen(
 
         Spacer(modifier = Modifier.weight(1f))
 
-        // ── Botón principal ───────────────────────────────────────────────
+        //  Botón Confirmar o Siguiente
         if (state.feedback == null) {
-            // Aún no confirmó → mostrar Confirmar
+
             Button(
                 onClick = onConfirm,
                 enabled = state.selectedIndex != null,
@@ -174,8 +214,10 @@ fun QuestionScreen(
                 Text("Confirmar")
             }
         } else {
-            // Ya confirmó → avanzar
-            val buttonLabel = if (state.isLastQuestion || state.lives <= 0) "Ver resultados" else "Siguiente"
+            // 2. Cambiar texto en la última pregunta o si perdió vidas
+            val isLast = state.currentIndex == state.questions.size - 1
+            val buttonLabel = if (isLast || state.lives <= 0) "Ver resultados" else "Siguiente"
+
             Button(
                 onClick = onNext,
                 modifier = Modifier.fillMaxWidth()
@@ -183,15 +225,6 @@ fun QuestionScreen(
                 Text(buttonLabel)
             }
         }
-
-        // ── Porcentaje de avance ──────────────────────────────────────────
-        val progress = ((state.currentIndex + 1).toFloat() / state.questions.size * 100).toInt()
-        Text(
-            text = "Porcentaje de avance: $progress%",
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.align(Alignment.CenterHorizontally)
-        )
     }
 }
 
@@ -199,7 +232,8 @@ fun QuestionScreen(
 fun FinishedScreen(
     score: Int,
     total: Int,
-    livesLeft: Int
+    livesLeft: Int,
+    onRestart: () -> Unit
 ) {
     Column(
         modifier = Modifier
@@ -208,25 +242,32 @@ fun FinishedScreen(
         verticalArrangement = Arrangement.Center,
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        val title = if (livesLeft <= 0) "¡Sin vidas! 💀" else "¡Quiz finalizado! 🎉"
-        Text(text = title, style = MaterialTheme.typography.headlineMedium)
+        val emoji = if (livesLeft <= 0) "☹️" else "😎"
+        val message = if (livesLeft <= 0) "¡Te quedaste sin vidas!" else "¡Completaste el Quiz!"
 
-        Spacer(modifier = Modifier.height(24.dp))
+        Text(
+            text = emoji,
+            style = MaterialTheme.typography.displayMedium
+        )
+        Spacer(modifier = Modifier.height(12.dp))
 
-        val heartsDisplay = "❤️".repeat(livesLeft) + "🖤".repeat(3 - livesLeft)
-        Text(text = heartsDisplay, style = MaterialTheme.typography.headlineSmall)
+        Text(
+            text = message,
+            style = MaterialTheme.typography.headlineMedium,
+            textAlign = TextAlign.Center
+        )
 
         Spacer(modifier = Modifier.height(24.dp))
 
         Text(
-            text = "Tu puntaje: $score / $total",
+            text = "Tu puntaje: $score de $total",
             style = MaterialTheme.typography.titleLarge
         )
 
         Spacer(modifier = Modifier.height(64.dp))
 
-        Button(onClick = {}) {
-            Text("Reintentar Quiz")
+        Button(onClick = onRestart) {
+            Text("🔄 Reintentar Quiz")
         }
     }
 }
